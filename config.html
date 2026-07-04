@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<script>
+    const SUPABASE_URL = 'https://jgfgtapavgupabiujpxc.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_JonsJCMpzpa7XhvvImLYVQ_XBTQc8hK';
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function fetchConfig() {
+        try {
+            const { data, error } = await db.from('app_config').select('value').eq('key', 'server_url').single();
+            if (!error && data && data.value) {
+                if (window.AndroidConfig && window.AndroidConfig.setConfig) {
+                    window.AndroidConfig.setConfig(data.value);
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    fetchConfig();
+</script>
+</body>
+</html>

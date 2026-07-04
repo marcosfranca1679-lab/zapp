@@ -94,6 +94,23 @@
 
 <div class="container">
 
+  <!-- SERVER CONFIGURATION -->
+  <div class="card">
+    <h2><span class="step-badge">⚙️</span> URL do Servidor IPTV (Xtream Codes API)</h2>
+    <div class="info-box" style="margin-top: 10px;">
+      Esta URL será acessada pelo Z Player 2.0 para carregar os canais, filmes e séries.
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>URL do Servidor</label>
+        <input type="url" id="inp-server-url" placeholder="http://meuservidor.com:8080">
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-save-config" onclick="saveServerUrl()">💾 Salvar URL do Servidor</button>
+    </div>
+  </div>
+
   <!-- ADD BANNER -->
   <div class="card">
     <h2><span class="step-badge">1</span> Adicionar Banner</h2>
@@ -263,6 +280,41 @@ function showToast(msg, type = 'ok') {
   setTimeout(() => t.className = 'toast', 3000);
 }
 
+async function loadConfig() {
+  loading(true);
+  const { data, error } = await db.from('app_config').select('value').eq('key', 'server_url').single();
+  loading(false);
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // Not found, insert default
+      await db.from('app_config').insert([{ key: 'server_url', value: 'http://ded30.com:80' }]);
+      document.getElementById('inp-server-url').value = 'http://ded30.com:80';
+    } else {
+      showToast('❌ Erro ao carregar URL do servidor: ' + error.message, 'err');
+    }
+  } else if (data) {
+    document.getElementById('inp-server-url').value = data.value;
+  }
+}
+
+async function saveServerUrl() {
+  const url = document.getElementById('inp-server-url').value.trim();
+  if (!url) { showToast('❌ A URL do servidor não pode estar vazia', 'err'); return; }
+  const btn = document.getElementById('btn-save-config');
+  btn.textContent = '⏳ Salvando...';
+  btn.disabled = true;
+
+  loading(true);
+  const { error } = await db.from('app_config').upsert({ key: 'server_url', value: url });
+  loading(false);
+
+  btn.innerHTML = '💾 Salvar URL do Servidor';
+  btn.disabled = false;
+
+  if (error) { showToast('❌ Erro ao salvar: ' + error.message, 'err'); return; }
+  showToast('✅ URL do servidor atualizada!', 'ok');
+}
+
 // Init
 (async () => {
   const { error } = await db.from('banners').select('id').limit(1);
@@ -275,6 +327,7 @@ function showToast(msg, type = 'ok') {
     showToast('Erro ao conectar ao Supabase. Verifique as políticas RLS.', 'err');
   } else {
     badge.textContent = '🟢 Supabase conectado';
+    loadConfig();
     loadBanners();
   }
 })();
