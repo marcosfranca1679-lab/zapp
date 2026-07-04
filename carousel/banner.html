@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Banners</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;background:#000;overflow:hidden}
+  .carousel{position:relative;width:100%;height:100%;overflow:hidden}
+  .slides{display:flex;height:100%;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+  .slide{min-width:100%;height:100%;position:relative;flex-shrink:0;cursor:pointer}
+  .slide img{width:100%;height:100%;object-fit:cover}
+  .slide-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%)}
+  .slide-title{position:absolute;bottom:26px;left:14px;right:14px;color:#fff;
+    font-family:sans-serif;font-size:14px;font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,.9)}
+  .dots{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:center;gap:5px}
+  .dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35);transition:.3s;cursor:pointer}
+  .dot.active{background:#fff;width:18px;border-radius:3px}
+  .loading{position:absolute;inset:0;background:#0a0a0a;display:flex;
+    align-items:center;justify-content:center;flex-direction:column;gap:12px}
+  .spinner{width:28px;height:28px;border:2.5px solid rgba(255,255,255,.08);
+    border-top-color:#7c3aed;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading p{color:rgba(255,255,255,.3);font-family:sans-serif;font-size:11px}
+</style>
+</head>
+<body>
+<div class="carousel" id="carousel">
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Carregando...</p>
+  </div>
+  <div class="slides" id="slides"></div>
+  <div class="dots" id="dots"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://jgfgtapavgupabiujpxc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_JonsJCMpzpa7XhvvImLYVQ_XBTQc8hK';
+
+let current = 0, total = 0, timer = null;
+
+function openLink(url) {
+  if (!url) return;
+  try {
+    if (window.Android && window.Android.openUrl) window.Android.openUrl(url);
+    else window.open(url, '_blank');
+  } catch(e) { window.open(url, '_blank'); }
+}
+
+function goTo(n) {
+  if (!total) return;
+  current = ((n % total) + total) % total;
+  document.getElementById('slides').style.transform = `translateX(-${current*100}%)`;
+  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i===current));
+  clearInterval(timer);
+  if (total > 1) timer = setInterval(() => goTo(current+1), 4500);
+}
+
+function build(banners) {
+  total = banners.length;
+  const sl = document.getElementById('slides');
+  const dt = document.getElementById('dots');
+  banners.forEach((b, i) => {
+    const s = document.createElement('div');
+    s.className = 'slide';
+    s.innerHTML = `<img src="${b.image_url}" loading="${i?'lazy':'eager'}"
+      onerror="this.style.background='#111'" alt="">
+      <div class="slide-overlay"></div>
+      ${b.title ? `<div class="slide-title">${b.title}</div>` : ''}`;
+    if (b.action_url) s.onclick = () => openLink(b.action_url);
+    sl.appendChild(s);
+    if (total > 1) {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i===0?' active':'');
+      d.onclick = () => goTo(i);
+      dt.appendChild(d);
+    }
+  });
+  document.getElementById('loading').style.display = 'none';
+  goTo(0);
+}
+
+async function load() {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/banners?active=eq.true&order=ordem.asc`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    );
+    const data = await res.json();
+    if (!data || !data.length) throw new Error('empty');
+    build(data);
+  } catch(e) {
+    document.getElementById('loading').innerHTML =
+      '<p style="color:rgba(255,255,255,.3);font-family:sans-serif;font-size:12px;text-align:center;padding:20px">Sem banners disponíveis</p>';
+  }
+}
+
+// Touch swipe
+let tx = 0;
+document.addEventListener('touchstart', e => tx = e.touches[0].clientX, {passive:true});
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - tx;
+  if (Math.abs(dx) > 40) goTo(current + (dx < 0 ? 1 : -1));
+}, {passive:true});
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Z Player — Painel de Banners</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c28;--accent:#7c3aed;
+    --accent2:#a855f7;--green:#22c55e;--red:#ef4444;--text:#f1f5f9;
+    --muted:#64748b;--border:#1e1e2e;
+  }
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
+  header{
+    background:linear-gradient(135deg,var(--surface),var(--surface2));
+    border-bottom:1px solid var(--border);padding:20px 32px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .logo{display:flex;align-items:center;gap:12px}
+  .logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .logo h1{font-size:20px;font-weight:700}
+  .logo span{color:var(--accent2)}
+  .badge{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.2);
+    padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500}
+  .container{max-width:960px;margin:0 auto;padding:32px 20px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:24px}
+  .card h2{font-size:16px;font-weight:600;margin-bottom:20px;color:var(--text);
+    display:flex;align-items:center;gap:8px}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .form-group{display:flex;flex-direction:column;gap:6px}
+  .form-group.full{grid-column:1/-1}
+  label{font-size:13px;color:var(--muted);font-weight:500}
+  input,select{background:var(--surface2);border:1px solid var(--border);color:var(--text);
+    padding:10px 14px;border-radius:10px;font-size:14px;font-family:'Inter',sans-serif;
+    outline:none;transition:.2s;width:100%}
+  input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
+  .preview-box{background:var(--surface2);border:2px dashed var(--border);border-radius:12px;
+    height:120px;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);font-size:13px;overflow:hidden;margin-top:8px}
+  .preview-box img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+  .btn{padding:10px 20px;border:none;border-radius:10px;font-family:'Inter',sans-serif;
+    font-size:14px;font-weight:600;cursor:pointer;transition:.2s;display:inline-flex;
+    align-items:center;gap:8px}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+  .btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+  .btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+  .btn-danger:hover{background:rgba(239,68,68,.25)}
+  .btn-green{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+  .btn-green:hover{background:rgba(34,197,94,.25)}
+  .btn-sm{padding:6px 12px;font-size:12px}
+  .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  #banner-list{display:flex;flex-direction:column;gap:12px}
+  .banner-item{background:var(--surface2);border:1px solid var(--border);border-radius:12px;
+    padding:14px 16px;display:flex;align-items:center;gap:14px;transition:.2s}
+  .banner-item:hover{border-color:var(--accent)}
+  .banner-thumb{width:80px;height:50px;border-radius:8px;object-fit:cover;background:var(--bg);flex-shrink:0}
+  .banner-info{flex:1;min-width:0}
+  .banner-title{font-size:14px;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .banner-url{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .banner-controls{display:flex;gap:6px;flex-shrink:0}
+  .empty-state{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+  .toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:12px;
+    font-size:14px;font-weight:500;opacity:0;transform:translateY(10px);
+    transition:.3s;pointer-events:none;z-index:999;color:#fff}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .toast.ok{background:#22c55e}
+  .toast.err{background:#ef4444}
+  .loading-bar{height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+    position:fixed;top:0;left:0;width:0;transition:width .3s;z-index:9999}
+  .loading-bar.show{width:70%}
+  .loading-bar.done{width:100%}
+  .step-badge{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .info-box{background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);border-radius:10px;
+    padding:12px 16px;font-size:13px;color:var(--accent2);margin-bottom:16px}
+  @media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="loading-bar" id="lbar"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">📺</div>
+    <h1>Z Player <span>Banners</span></h1>
+  </div>
+  <span class="badge" id="conn-badge">⏳ Conectando...</span>
+</header>
+
+<div class="container">
+
+  <!-- ADD BANNER -->
+  <div class="card">
+    <h2><span class="step-badge">1</span> Adicionar Banner</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Título do Banner</label>
+        <input type="text" id="inp-title" placeholder="Ex: Promoção de Julho">
+      </div>
+      <div class="form-group">
+        <label>URL da Imagem</label>
+        <input type="url" id="inp-image" placeholder="https://..." oninput="previewImg(this.value)">
+      </div>
+      <div class="form-group">
+        <label>Link ao Clicar (opcional)</label>
+        <input type="url" id="inp-link" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>Ordem</label>
+        <input type="number" id="inp-ordem" value="0" min="0">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="inp-active">
+          <option value="true">✅ Ativo</option>
+          <option value="false">❌ Inativo</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Pré-visualização</label>
+        <div class="preview-box" id="preview-box">
+          <span>A imagem aparecerá aqui</span>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-add" onclick="addBanner()">➕ Adicionar Banner</button>
+      <button class="btn btn-green" onclick="clearForm()">🗑 Limpar</button>
+    </div>
+  </div>
+
+  <!-- BANNER LIST -->
+  <div class="card">
+    <h2>
+      <span class="step-badge">2</span>
+      Banners Ativos
+      <span id="count-badge" style="margin-left:auto;background:var(--surface2);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:400;color:var(--muted)">carregando...</span>
+      <button class="btn btn-green btn-sm" onclick="loadBanners()" style="margin-left:8px">🔄</button>
+    </h2>
+    <div id="banner-list">
+      <div class="empty-state">Carregando banners...</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://jgfgtapavgupabiujpxc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_JonsJCMpzpa7XhvvImLYVQ_XBTQc8hK';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function loading(on) {
+  const lb = document.getElementById('lbar');
+  lb.className = 'loading-bar' + (on ? ' show' : ' done');
+  if (!on) setTimeout(() => lb.className = 'loading-bar', 400);
+}
+
+async function loadBanners() {
+  loading(true);
+  const { data, error } = await db.from('banners').select('*').order('ordem', { ascending: true });
+  loading(false);
+  if (error) { showToast('❌ Erro ao carregar: ' + error.message, 'err'); return; }
+  renderList(data || []);
+}
+
+function renderList(banners) {
+  const list = document.getElementById('banner-list');
+  document.getElementById('count-badge').textContent = banners.length + ' banner(s)';
+  if (!banners.length) {
+    list.innerHTML = '<div class="empty-state">Nenhum banner ainda. Adicione um acima ☝</div>';
+    return;
+  }
+  list.innerHTML = banners.map(b => `
+    <div class="banner-item">
+      <img class="banner-thumb" src="${b.image_url}"
+        onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2250%22><rect fill=%22%231c1c28%22 width=%2280%22 height=%2250%22/></svg>'" alt="">
+      <div class="banner-info">
+        <div class="banner-title">${b.title || '(sem título)'}</div>
+        <div class="banner-url">${b.action_url || '(sem link)'}</div>
+      </div>
+      <div class="banner-controls">
+        <button class="btn btn-sm ${b.active ? 'btn-green' : 'btn-danger'}" onclick="toggleBanner(${b.id}, ${b.active})">
+          ${b.active ? '✅ Ativo' : '❌ Inativo'}
+        </button>
+        <button class="btn btn-sm btn-danger" onclick="deleteBanner(${b.id})">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addBanner() {
+  const title = document.getElementById('inp-title').value.trim();
+  const image_url = document.getElementById('inp-image').value.trim();
+  const action_url = document.getElementById('inp-link').value.trim();
+  const active = document.getElementById('inp-active').value === 'true';
+  const ordem = parseInt(document.getElementById('inp-ordem').value) || 0;
+
+  if (!image_url) { showToast('❌ URL da imagem obrigatória', 'err'); return; }
+
+  const btn = document.getElementById('btn-add');
+  btn.textContent = '⏳ Salvando...';
+  btn.disabled = true;
+
+  loading(true);
+  const { error } = await db.from('banners').insert([{ title, image_url, action_url: action_url || null, active, ordem }]);
+  loading(false);
+
+  btn.textContent = '➕ Adicionar Banner';
+  btn.disabled = false;
+
+  if (error) { showToast('❌ Erro: ' + error.message, 'err'); return; }
+  showToast('✅ Banner adicionado!', 'ok');
+  clearForm();
+  loadBanners();
+}
+
+async function deleteBanner(id) {
+  if (!confirm('Remover este banner?')) return;
+  loading(true);
+  const { error } = await db.from('banners').delete().eq('id', id);
+  loading(false);
+  if (error) { showToast('❌ Erro: ' + error.message, 'err'); return; }
+  showToast('🗑 Banner removido', 'ok');
+  loadBanners();
+}
+
+async function toggleBanner(id, current) {
+  loading(true);
+  const { error } = await db.from('banners').update({ active: !current }).eq('id', id);
+  loading(false);
+  if (error) { showToast('❌ Erro: ' + error.message, 'err'); return; }
+  showToast(current ? '❌ Banner desativado' : '✅ Banner ativado', 'ok');
+  loadBanners();
+}
+
+function previewImg(url) {
+  const box = document.getElementById('preview-box');
+  box.innerHTML = url
+    ? `<img src="${url}" onerror="this.parentElement.innerHTML='<span>Imagem inválida</span>'" alt="preview">`
+    : '<span>A imagem aparecerá aqui</span>';
+}
+
+function clearForm() {
+  ['inp-title','inp-image','inp-link'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('inp-active').value = 'true';
+  document.getElementById('inp-ordem').value = '0';
+  document.getElementById('preview-box').innerHTML = '<span>A imagem aparecerá aqui</span>';
+}
+
+function showToast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// Init
+(async () => {
+  const { error } = await db.from('banners').select('id').limit(1);
+  const badge = document.getElementById('conn-badge');
+  if (error) {
+    badge.textContent = '❌ Sem conexão';
+    badge.style.background = 'rgba(239,68,68,.15)';
+    badge.style.color = '#ef4444';
+    badge.style.border = '1px solid rgba(239,68,68,.2)';
+    showToast('Erro ao conectar ao Supabase. Verifique as políticas RLS.', 'err');
+  } else {
+    badge.textContent = '🟢 Supabase conectado';
+    loadBanners();
+  }
+})();
+</script>
+</body>
+</html>
