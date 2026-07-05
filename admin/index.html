@@ -138,6 +138,9 @@
     display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
   .info-box{background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);border-radius:10px;
     padding:12px 16px;font-size:13px;color:var(--accent2);margin-bottom:16px}
+  .badge-dest { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; display: inline-block; }
+  .badge-dest.all { background: rgba(37,99,235,.15); color: var(--accent2); }
+  .badge-dest.spec { background: rgba(34,197,94,.15); color: var(--green); }
   @media(max-width:600px){.form-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -156,6 +159,7 @@
 <div class="tabs-container">
   <button class="tab-btn active" id="btn-tab-banners" onclick="switchTab('banners')">🖼️ Banners & Configs</button>
   <button class="tab-btn" id="btn-tab-devices" onclick="switchTab('devices')">🔑 Autorização via MAC</button>
+  <button class="tab-btn" id="btn-tab-messages" onclick="switchTab('messages')">🔔 Notificações</button>
 </div>
 
 <div class="container">
@@ -311,6 +315,71 @@
     </div>
   </div>
 
+  <!-- ================= TABS: MESSAGES ================= -->
+  <div id="tab-messages-content" class="tab-content">
+    
+    <!-- ADD MESSAGE -->
+    <div class="card">
+      <h2 id="msg-form-title"><span class="step-badge">✉️</span> Nova Notificação</h2>
+      <div class="info-box" style="margin-top: 10px;">
+        Envie mensagens/notificações que serão exibidas na tela inicial dos aplicativos. Você pode direcionar para todos os usuários ou um MAC específico.
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Título da Notificação</label>
+          <input type="text" id="inp-msg-title" placeholder="Ex: Manutenção programada" maxlength="100">
+        </div>
+        <div class="form-group">
+          <label>Destino da Mensagem</label>
+          <select id="inp-msg-target-type" onchange="toggleMsgTargetInput()">
+            <option value="all">📢 Todos os usuários</option>
+            <option value="specific">👤 Usuário específico (MAC)</option>
+          </select>
+        </div>
+        <div class="form-group full" id="msg-target-group" style="display:none">
+          <label>MAC Address do Usuário Destino</label>
+          <input type="text" id="inp-msg-target-user" placeholder="Ex: AA:BB:CC:DD:EE:FF">
+        </div>
+        <div class="form-group full">
+          <label>Conteúdo da Mensagem</label>
+          <input type="text" id="inp-msg-message" placeholder="Digite o conteúdo da notificação..." maxlength="1000">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-save-msg" onclick="sendNotification()">💾 Enviar Notificação</button>
+        <button class="btn btn-green" onclick="clearMsgForm()">🗑 Limpar</button>
+      </div>
+    </div>
+
+    <!-- MESSAGES LIST -->
+    <div class="card">
+      <h2>
+        <span class="step-badge">📋</span>
+        Mensagens Ativas
+        <span id="msg-count-badge" style="margin-left:auto;background:var(--surface2);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:400;color:var(--muted)">carregando...</span>
+        <button class="btn btn-green btn-sm" onclick="loadMessages()" style="margin-left:8px">🔄 Recarregar</button>
+      </h2>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Título</th>
+              <th>Mensagem</th>
+              <th>Destino</th>
+              <th>Data</th>
+              <th style="text-align: right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="msg-table-body">
+            <tr>
+              <td colspan="5" class="empty-state">Carregando mensagens...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -343,6 +412,10 @@ function switchTab(tab) {
     document.getElementById('btn-tab-devices').classList.add('active');
     document.getElementById('tab-devices-content').classList.add('active');
     loadDevices();
+  } else if (tab === 'messages') {
+    document.getElementById('btn-tab-messages').classList.add('active');
+    document.getElementById('tab-messages-content').classList.add('active');
+    loadMessages();
   }
 }
 
@@ -608,6 +681,102 @@ function showToast(msg, type = 'ok') {
   t.textContent = msg;
   t.className = `toast ${type} show`;
   setTimeout(() => t.className = 'toast', 3000);
+}
+
+/* ================= NOTIFICATIONS LOGIC ================= */
+function toggleMsgTargetInput() {
+  const type = document.getElementById('inp-msg-target-type').value;
+  document.getElementById('msg-target-group').style.display = type === 'specific' ? 'block' : 'none';
+}
+
+function clearMsgForm() {
+  document.getElementById('inp-msg-title').value = '';
+  document.getElementById('inp-msg-message').value = '';
+  document.getElementById('inp-msg-target-type').value = 'all';
+  document.getElementById('inp-msg-target-user').value = '';
+  toggleMsgTargetInput();
+}
+
+async function loadMessages() {
+  loading(true);
+  const { data, error } = await db.from('notifications').select('*').eq('is_active', true).order('created_at', { ascending: false });
+  loading(false);
+  if (error) { showToast('❌ Erro ao carregar mensagens: ' + error.message, 'err'); return; }
+  renderMessages(data || []);
+}
+
+function renderMessages(msgs) {
+  const tbody = document.getElementById('msg-table-body');
+  document.getElementById('msg-count-badge').textContent = msgs.length + ' mensagem(ns)';
+  
+  if (!msgs.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Nenhuma mensagem ativa.</td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = msgs.map(m => `
+    <tr>
+      <td style="font-weight: 600; color: var(--accent2);">${escapeHtml(m.title)}</td>
+      <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(m.message)}</td>
+      <td>
+        <span class="badge-dest ${m.target_user ? 'spec' : 'all'}">
+          ${m.target_user ? '👤 ' + escapeHtml(m.target_user) : '📢 Todos'}
+        </span>
+      </td>
+      <td style="color: var(--muted); font-size: 12px;">${new Date(m.created_at).toLocaleString('pt-BR')}</td>
+      <td style="text-align: right;">
+        <button class="btn btn-sm btn-danger" onclick="deleteMessage('${m.id}')">Remover</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function sendNotification() {
+  const title = document.getElementById('inp-msg-title').value.trim();
+  const message = document.getElementById('inp-msg-message').value.trim();
+  const targetType = document.getElementById('inp-msg-target-type').value;
+  const targetUser = targetType === 'specific' ? document.getElementById('inp-msg-target-user').value.trim().toUpperCase() : null;
+
+  if (!title) { showToast('❌ Título é obrigatório', 'err'); return; }
+  if (!message) { showToast('❌ Conteúdo da mensagem é obrigatório', 'err'); return; }
+  if (targetType === 'specific' && !targetUser) { showToast('❌ MAC Address do usuário é obrigatório', 'err'); return; }
+
+  const btn = document.getElementById('btn-save-msg');
+  btn.textContent = '⏳ Enviando...';
+  btn.disabled = true;
+
+  loading(true);
+  const { error } = await db.from('notifications').insert([{
+    title: title,
+    message: message,
+    target_user: targetUser,
+    is_active: true
+  }]);
+  loading(false);
+
+  btn.textContent = '💾 Enviar Notificação';
+  btn.disabled = false;
+
+  if (error) { showToast('❌ Erro ao enviar: ' + error.message, 'err'); return; }
+  showToast('✅ Notificação enviada com sucesso!', 'ok');
+  clearMsgForm();
+  loadMessages();
+}
+
+async function deleteMessage(id) {
+  if (!confirm('Deseja remover esta mensagem? Ela não será mais exibida para os usuários.')) return;
+  loading(true);
+  const { error } = await db.from('notifications').update({ is_active: false }).eq('id', id);
+  loading(false);
+  if (error) { showToast('❌ Erro ao remover: ' + error.message, 'err'); return; }
+  showToast('🗑 Notificação removida!', 'ok');
+  loadMessages();
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
 }
 
 // Init
