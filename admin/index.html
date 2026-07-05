@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Z Player — Painel de Banners</title>
+<title>Z Player — Painel Administrativo</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
   :root{
-    --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c28;--accent:#7c3aed;
+    --bg:#08080c;--surface:#0f0f16;--surface2:#161622;--accent:#7c3aed;
     --accent2:#a855f7;--green:#22c55e;--red:#ef4444;--text:#f1f5f9;
-    --muted:#64748b;--border:#1e1e2e;
+    --muted:#64748b;--border:#202030;
   }
   body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
   header{
@@ -26,7 +26,41 @@
   .logo span{color:var(--accent2)}
   .badge{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.2);
     padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500}
-  .container{max-width:960px;margin:0 auto;padding:32px 20px}
+  
+  /* Tabs Navigation Styling */
+  .tabs-container {
+    max-width: 960px;
+    margin: 24px auto 0;
+    padding: 0 20px;
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .2s;
+  }
+  .tab-btn:hover {
+    color: var(--text);
+  }
+  .tab-btn.active {
+    background: var(--surface2);
+    color: var(--accent2);
+    border: 1px solid var(--border);
+  }
+  
+  .container{max-width:960px;margin:0 auto;padding:24px 20px}
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  
   .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:24px}
   .card h2{font-size:16px;font-weight:600;margin-bottom:20px;color:var(--text);
     display:flex;align-items:center;gap:8px}
@@ -44,7 +78,7 @@
   .preview-box img{width:100%;height:100%;object-fit:cover;border-radius:10px}
   .btn{padding:10px 20px;border:none;border-radius:10px;font-family:'Inter',sans-serif;
     font-size:14px;font-weight:600;cursor:pointer;transition:.2s;display:inline-flex;
-    align-items:center;gap:8px}
+    align-items:center;justify-content:center;gap:8px}
   .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
   .btn-primary:hover{opacity:.9;transform:translateY(-1px)}
   .btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.2)}
@@ -53,6 +87,8 @@
   .btn-green:hover{background:rgba(34,197,94,.25)}
   .btn-sm{padding:6px 12px;font-size:12px}
   .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  
+  /* Banners List Styling */
   #banner-list{display:flex;flex-direction:column;gap:12px}
   .banner-item{background:var(--surface2);border:1px solid var(--border);border-radius:12px;
     padding:14px 16px;display:flex;align-items:center;gap:14px;transition:.2s}
@@ -62,6 +98,31 @@
   .banner-title{font-size:14px;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .banner-url{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .banner-controls{display:flex;gap:6px;flex-shrink:0}
+  
+  /* Devices/MAC address Table Styling */
+  .table-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .search-wrapper { position: relative; flex: 1; min-width: 200px; }
+  .search-wrapper input { padding-left: 36px; }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; }
+  
+  .table-responsive { width: 100%; overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); background: var(--surface2); }
+  table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+  th, td { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  th { background: rgba(255,255,255,.02); color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.01); }
+  
+  .badge-status { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; display: inline-block; }
+  .badge-status.active { background: rgba(34,197,94,.15); color: var(--green); }
+  .badge-status.inactive { background: rgba(239,68,68,.15); color: var(--red); }
+  
   .empty-state{text-align:center;padding:40px;color:var(--muted);font-size:14px}
   .toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:12px;
     font-size:14px;font-weight:500;opacity:0;transform:translateY(10px);
@@ -87,80 +148,166 @@
 <header>
   <div class="logo">
     <div class="logo-icon">📺</div>
-    <h1>Z Player <span>Banners</span></h1>
+    <h1>Z Player <span>Admin</span></h1>
   </div>
   <span class="badge" id="conn-badge">⏳ Conectando...</span>
 </header>
 
+<div class="tabs-container">
+  <button class="tab-btn active" id="btn-tab-banners" onclick="switchTab('banners')">🖼️ Banners & Configs</button>
+  <button class="tab-btn" id="btn-tab-devices" onclick="switchTab('devices')">🔑 Autorização via MAC</button>
+</div>
+
 <div class="container">
 
-  <!-- SERVER CONFIGURATION -->
-  <div class="card">
-    <h2><span class="step-badge">⚙️</span> URL do Servidor IPTV (Xtream Codes API)</h2>
-    <div class="info-box" style="margin-top: 10px;">
-      Esta URL será acessada pelo Z Player 2.0 para carregar os canais, filmes e séries.
-    </div>
-    <div class="form-grid">
-      <div class="form-group full">
-        <label>URL do Servidor</label>
-        <input type="url" id="inp-server-url" placeholder="http://meuservidor.com:8080">
+  <!-- ================= TABS: BANNERS ================= -->
+  <div id="tab-banners-content" class="tab-content active">
+    <!-- SERVER CONFIGURATION -->
+    <div class="card">
+      <h2><span class="step-badge">⚙️</span> URL do Servidor IPTV (Xtream Codes API)</h2>
+      <div class="info-box" style="margin-top: 10px;">
+        Esta URL será acessada pelo Z Player 2.0 para carregar os canais, filmes e séries.
       </div>
-    </div>
-    <div class="actions">
-      <button class="btn btn-primary" id="btn-save-config" onclick="saveServerUrl()">💾 Salvar URL do Servidor</button>
-    </div>
-  </div>
-
-  <!-- ADD BANNER -->
-  <div class="card">
-    <h2><span class="step-badge">1</span> Adicionar Banner</h2>
-    <div class="form-grid">
-      <div class="form-group">
-        <label>Título do Banner</label>
-        <input type="text" id="inp-title" placeholder="Ex: Promoção de Julho">
-      </div>
-      <div class="form-group">
-        <label>URL da Imagem</label>
-        <input type="url" id="inp-image" placeholder="https://..." oninput="previewImg(this.value)">
-      </div>
-      <div class="form-group">
-        <label>Link ao Clicar (opcional)</label>
-        <input type="url" id="inp-link" placeholder="https://...">
-      </div>
-      <div class="form-group">
-        <label>Ordem</label>
-        <input type="number" id="inp-ordem" value="0" min="0">
-      </div>
-      <div class="form-group">
-        <label>Status</label>
-        <select id="inp-active">
-          <option value="true">✅ Ativo</option>
-          <option value="false">❌ Inativo</option>
-        </select>
-      </div>
-      <div class="form-group full">
-        <label>Pré-visualização</label>
-        <div class="preview-box" id="preview-box">
-          <span>A imagem aparecerá aqui</span>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>URL do Servidor</label>
+          <input type="url" id="inp-server-url" placeholder="http://meuservidor.com:8080">
         </div>
       </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-save-config" onclick="saveServerUrl()">💾 Salvar URL do Servidor</button>
+      </div>
     </div>
-    <div class="actions">
-      <button class="btn btn-primary" id="btn-add" onclick="addBanner()">➕ Adicionar Banner</button>
-      <button class="btn btn-green" onclick="clearForm()">🗑 Limpar</button>
+
+    <!-- ADD BANNER -->
+    <div class="card">
+      <h2><span class="step-badge">1</span> Adicionar Banner</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Título do Banner</label>
+          <input type="text" id="inp-title" placeholder="Ex: Promoção de Julho">
+        </div>
+        <div class="form-group">
+          <label>URL da Imagem</label>
+          <input type="url" id="inp-image" placeholder="https://..." oninput="previewImg(this.value)">
+        </div>
+        <div class="form-group">
+          <label>Link ao Clicar (opcional)</label>
+          <input type="url" id="inp-link" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label>Ordem</label>
+          <input type="number" id="inp-ordem" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="inp-active">
+            <option value="true">✅ Ativo</option>
+            <option value="false">❌ Inativo</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Pré-visualização</label>
+          <div class="preview-box" id="preview-box">
+            <span>A imagem aparecerá aqui</span>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-add" onclick="addBanner()">➕ Adicionar Banner</button>
+        <button class="btn btn-green" onclick="clearForm()">🗑 Limpar</button>
+      </div>
+    </div>
+
+    <!-- BANNER LIST -->
+    <div class="card">
+      <h2>
+        <span class="step-badge">2</span>
+        Banners Ativos
+        <span id="count-badge" style="margin-left:auto;background:var(--surface2);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:400;color:var(--muted)">carregando...</span>
+        <button class="btn btn-green btn-sm" onclick="loadBanners()" style="margin-left:8px">🔄</button>
+      </h2>
+      <div id="banner-list">
+        <div class="empty-state">Carregando banners...</div>
+      </div>
     </div>
   </div>
 
-  <!-- BANNER LIST -->
-  <div class="card">
-    <h2>
-      <span class="step-badge">2</span>
-      Banners Ativos
-      <span id="count-badge" style="margin-left:auto;background:var(--surface2);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:400;color:var(--muted)">carregando...</span>
-      <button class="btn btn-green btn-sm" onclick="loadBanners()" style="margin-left:8px">🔄</button>
-    </h2>
-    <div id="banner-list">
-      <div class="empty-state">Carregando banners...</div>
+  <!-- ================= TABS: DEVICES (MAC) ================= -->
+  <div id="tab-devices-content" class="tab-content">
+    
+    <!-- ADD DEVICE -->
+    <div class="card">
+      <h2 id="mac-form-title"><span class="step-badge">1</span> Cadastrar/Liberar Dispositivo MAC</h2>
+      <div class="info-box" style="margin-top: 10px;">
+        Cadastre o MAC Address do dispositivo do cliente para conceder login nativo automático no aplicativo.
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>MAC Address (Físico ou ID Formatado)</label>
+          <input type="text" id="inp-mac" placeholder="Ex: AA:BB:CC:DD:EE:FF ou ID:XX:XX...">
+        </div>
+        <div class="form-group">
+          <label>Status da Liberação</label>
+          <select id="inp-mac-status">
+            <option value="true">✅ Liberado / Ativo</option>
+            <option value="false">❌ Bloqueado / Inativo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Usuário IPTV (Xtream)</label>
+          <input type="text" id="inp-mac-username" placeholder="Usuário da conta">
+        </div>
+        <div class="form-group">
+          <label>Senha IPTV (Xtream)</label>
+          <input type="text" id="inp-mac-password" placeholder="Senha da conta">
+        </div>
+        <div class="form-group full">
+          <label>Notas / Identificação do Cliente (opcional)</label>
+          <input type="text" id="inp-mac-notes" placeholder="Ex: João da Silva - Plano Anual">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-save-mac" onclick="saveDevice()">💾 Salvar Dispositivo</button>
+        <button class="btn btn-green" id="btn-clear-mac" onclick="clearMacForm()">🗑 Cancelar / Limpar</button>
+      </div>
+    </div>
+
+    <!-- DEVICE LIST -->
+    <div class="card">
+      <h2>
+        <span class="step-badge">2</span>
+        Dispositivos Cadastrados
+        <span id="mac-count-badge" style="margin-left:auto;background:var(--surface2);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:400;color:var(--muted)">carregando...</span>
+      </h2>
+      
+      <div class="table-header-row">
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="inp-search-mac" placeholder="Buscar por MAC Address ou Notas..." oninput="filterDevices(this.value)">
+        </div>
+        <button class="btn btn-green btn-sm" onclick="loadDevices()">🔄 Recarregar</button>
+      </div>
+      
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>MAC Address</th>
+              <th>Usuário IPTV</th>
+              <th>Senha IPTV</th>
+              <th>Status</th>
+              <th>Identificação / Notas</th>
+              <th style="text-align: right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="device-table-body">
+            <tr>
+              <td colspan="6" class="empty-state">Carregando dispositivos...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -175,12 +322,31 @@ const SUPABASE_KEY = 'sb_publishable_JonsJCMpzpa7XhvvImLYVQ_XBTQc8hK';
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+let allDevices = [];
+
 function loading(on) {
   const lb = document.getElementById('lbar');
   lb.className = 'loading-bar' + (on ? ' show' : ' done');
   if (!on) setTimeout(() => lb.className = 'loading-bar', 400);
 }
 
+// Tab Switching Lgic
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  
+  if (tab === 'banners') {
+    document.getElementById('btn-tab-banners').classList.add('active');
+    document.getElementById('tab-banners-content').classList.add('active');
+    loadBanners();
+  } else if (tab === 'devices') {
+    document.getElementById('btn-tab-devices').classList.add('active');
+    document.getElementById('tab-devices-content').classList.add('active');
+    loadDevices();
+  }
+}
+
+/* ================= BANNERS LOGIC ================= */
 async function loadBanners() {
   loading(true);
   const { data, error } = await db.from('banners').select('*').order('ordem', { ascending: true });
@@ -273,22 +439,14 @@ function clearForm() {
   document.getElementById('preview-box').innerHTML = '<span>A imagem aparecerá aqui</span>';
 }
 
-function showToast(msg, type = 'ok') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast ${type} show`;
-  setTimeout(() => t.className = 'toast', 3000);
-}
-
 async function loadConfig() {
   loading(true);
   const { data, error } = await db.from('app_config').select('value').eq('key', 'server_url').single();
   loading(false);
   if (error) {
     if (error.code === 'PGRST116') {
-      // Not found, insert default
-      await db.from('app_config').insert([{ key: 'server_url', value: 'http://ded30.com:80' }]);
-      document.getElementById('inp-server-url').value = 'http://ded30.com:80';
+      await db.from('app_config').insert([{ key: 'server_url', value: 'http://onmaxline.xyz:8880' }]);
+      document.getElementById('inp-server-url').value = 'http://onmaxline.xyz:8880';
     } else {
       showToast('❌ Erro ao carregar URL do servidor: ' + error.message, 'err');
     }
@@ -313,6 +471,143 @@ async function saveServerUrl() {
 
   if (error) { showToast('❌ Erro ao salvar: ' + error.message, 'err'); return; }
   showToast('✅ URL do servidor atualizada!', 'ok');
+}
+
+/* ================= DEVICES (MAC) LOGIC ================= */
+async function loadDevices() {
+  loading(true);
+  const { data, error } = await db.from('mac_auth').select('*').order('created_at', { ascending: false });
+  loading(false);
+  if (error) { showToast('❌ Erro ao carregar dispositivos: ' + error.message, 'err'); return; }
+  allDevices = data || [];
+  renderDevices(allDevices);
+}
+
+function renderDevices(devices) {
+  const tbody = document.getElementById('device-table-body');
+  document.getElementById('mac-count-badge').textContent = devices.length + ' dispositivo(s)';
+  
+  if (!devices.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Nenhum dispositivo encontrado.</td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = devices.map(d => `
+    <tr>
+      <td style="font-family: monospace; font-weight: 600; color: var(--accent2);">${d.mac_address}</td>
+      <td>${d.username}</td>
+      <td><code>${d.password}</code></td>
+      <td>
+        <span class="badge-status ${d.status ? 'active' : 'inactive'}">
+          ${d.status ? 'Ativo' : 'Inativo'}
+        </span>
+      </td>
+      <td style="color: var(--muted);">${d.notes || '-'}</td>
+      <td style="text-align: right;">
+        <div style="display: inline-flex; gap: 6px;">
+          <button class="btn btn-sm ${d.status ? 'btn-danger' : 'btn-green'}" onclick="toggleDevice('${d.mac_address}', ${d.status})">
+            ${d.status ? 'Bloquear' : 'Liberar'}
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="editDevice('${d.mac_address}')">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteDevice('${d.mac_address}')">🗑</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function saveDevice() {
+  const mac = document.getElementById('inp-mac').value.trim().toUpperCase();
+  const status = document.getElementById('inp-mac-status').value === 'true';
+  const username = document.getElementById('inp-mac-username').value.trim();
+  const password = document.getElementById('inp-mac-password').value.trim();
+  const notes = document.getElementById('inp-mac-notes').value.trim();
+
+  if (!mac) { showToast('❌ MAC Address é obrigatório', 'err'); return; }
+  if (!username || !password) { showToast('❌ Usuário e Senha IPTV são obrigatórios', 'err'); return; }
+
+  loading(true);
+  const { error } = await db.from('mac_auth').upsert({
+    mac_address: mac,
+    status: status,
+    username: username,
+    password: password,
+    notes: notes || null
+  });
+  loading(false);
+
+  if (error) { showToast('❌ Erro ao salvar: ' + error.message, 'err'); return; }
+  showToast('✅ Dispositivo salvo com sucesso!', 'ok');
+  clearMacForm();
+  loadDevices();
+}
+
+async function toggleDevice(mac, currentStatus) {
+  loading(true);
+  const { error } = await db.from('mac_auth').update({ status: !currentStatus }).eq('mac_address', mac);
+  loading(false);
+  if (error) { showToast('❌ Erro: ' + error.message, 'err'); return; }
+  showToast(!currentStatus ? '✅ Dispositivo liberado!' : '❌ Dispositivo bloqueado!', 'ok');
+  loadDevices();
+}
+
+async function deleteDevice(mac) {
+  if (!confirm(`Remover liberação do MAC: ${mac}?`)) return;
+  loading(true);
+  const { error } = await db.from('mac_auth').delete().eq('mac_address', mac);
+  loading(false);
+  if (error) { showToast('❌ Erro ao remover: ' + error.message, 'err'); return; }
+  showToast('🗑 Dispositivo removido!', 'ok');
+  loadDevices();
+}
+
+function editDevice(mac) {
+  const device = allDevices.find(d => d.mac_address === mac);
+  if (!device) return;
+  
+  document.getElementById('inp-mac').value = device.mac_address;
+  document.getElementById('inp-mac').disabled = true; // Block editing primary key
+  document.getElementById('inp-mac-status').value = device.status.toString();
+  document.getElementById('inp-mac-username').value = device.username;
+  document.getElementById('inp-mac-password').value = device.password;
+  document.getElementById('inp-mac-notes').value = device.notes || '';
+  
+  document.getElementById('mac-form-title').innerHTML = `<span class="step-badge">✏️</span> Editar Dispositivo MAC: ${mac}`;
+  document.getElementById('btn-save-mac').innerHTML = '💾 Atualizar Dispositivo';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function clearMacForm() {
+  document.getElementById('inp-mac').value = '';
+  document.getElementById('inp-mac').disabled = false;
+  document.getElementById('inp-mac-status').value = 'true';
+  document.getElementById('inp-mac-username').value = '';
+  document.getElementById('inp-mac-password').value = '';
+  document.getElementById('inp-mac-notes').value = '';
+  
+  document.getElementById('mac-form-title').innerHTML = `<span class="step-badge">1</span> Cadastrar/Liberar Dispositivo MAC`;
+  document.getElementById('btn-save-mac').innerHTML = '💾 Salvar Dispositivo';
+}
+
+function filterDevices(query) {
+  const q = query.trim().toUpperCase();
+  if (!q) {
+    renderDevices(allDevices);
+    return;
+  }
+  const filtered = allDevices.filter(d => 
+    d.mac_address.toUpperCase().includes(q) || 
+    d.username.toUpperCase().includes(q) || 
+    (d.notes && d.notes.toUpperCase().includes(q))
+  );
+  renderDevices(filtered);
+}
+
+function showToast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.className = 'toast', 3000);
 }
 
 // Init
