@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z PLAYER - Painel de Notificações</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            min-height: 100vh;
+        }
+        .sidebar {
+            position: fixed;
+            left: 0; top: 0; bottom: 0;
+            width: 220px;
+            background: #161b22;
+            border-right: 1px solid rgba(255,255,255,0.06);
+            padding: 24px 16px;
+        }
+        .logo {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 32px;
+        }
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, #041c55, #2563eb);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        .logo h1 { font-size: 15px; font-weight: 700; }
+        .logo p { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 1px; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 4px;
+            transition: all 0.15s;
+        }
+        .nav-item.active { background: rgba(37,99,235,0.2); color: #60a5fa; }
+        .nav-item:hover:not(.active) { background: rgba(255,255,255,0.05); color: #fff; }
+        .main { margin-left: 220px; padding: 32px; }
+        .page-header {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            margin-bottom: 28px;
+        }
+        .page-header h2 { font-size: 22px; font-weight: 700; }
+        .page-header p { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+        .stats-row {
+            display: flex; gap: 16px;
+            margin-bottom: 28px;
+        }
+        .stat-card {
+            flex: 1;
+            background: #161b22;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .stat-val { font-size: 28px; font-weight: 700; }
+        .stat-lbl { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+        .card {
+            background: #161b22;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+        .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+        .form-group { flex: 1; }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            background: #0d1117;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #e6edf3;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.15s;
+            outline: none;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            border-color: #2563eb;
+        }
+        .form-group textarea { resize: vertical; min-height: 90px; }
+        .form-group select option { background: #161b22; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: #fff;
+        }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-danger {
+            background: rgba(239,68,68,0.15);
+            color: #f87171;
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+        .btn-danger:hover { background: rgba(239,68,68,0.25); }
+        .msg-table { width: 100%; border-collapse: collapse; }
+        .msg-table th {
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.7px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.3);
+            padding: 0 12px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .msg-table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 13px;
+            vertical-align: top;
+        }
+        .msg-table tr:last-child td { border-bottom: none; }
+        .msg-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 10px; font-weight: 600;
+            padding: 3px 8px; border-radius: 20px;
+            letter-spacing: 0.3px;
+        }
+        .badge-global { background: rgba(37,99,235,0.2); color: #60a5fa; }
+        .badge-personal { background: rgba(34,197,94,0.2); color: #4ade80; }
+        .msg-text { color: rgba(255,255,255,0.5); margin-top: 3px; font-size: 12px; }
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            display: none;
+        }
+        .alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); color: #4ade80; }
+        .alert-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #f87171; }
+        .empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.3); }
+        .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+        .spinner-sm {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .mac-hint { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">
+        <div class="logo-icon">📡</div>
+        <div>
+            <h1>Z PLAYER</h1>
+            <p>Painel Admin</p>
+        </div>
+    </div>
+    <div class="nav-item active">🔔 Notificações</div>
+</div>
+
+<div class="main">
+    <div class="page-header">
+        <div>
+            <h2>Notificações</h2>
+            <p>Envie mensagens para todos os usuários ou para um usuário específico</p>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-val" id="stat-total">—</div>
+            <div class="stat-lbl">Mensagens ativas</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val" id="stat-global">—</div>
+            <div class="stat-lbl">Globais</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val" id="stat-personal">—</div>
+            <div class="stat-lbl">Personalizadas</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>✉️ Nova Notificação</h3>
+        <div id="alert-send" class="alert"></div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Título</label>
+                <input type="text" id="inp-title" placeholder="Ex: Manutenção programada" maxlength="100">
+            </div>
+            <div class="form-group" style="max-width:200px">
+                <label>Destino</label>
+                <select id="inp-target-type" onchange="toggleTargetInput()">
+                    <option value="all">📢 Todos os usuários</option>
+                    <option value="specific">👤 Usuário específico</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group" style="margin-bottom:16px">
+            <label>Mensagem</label>
+            <textarea id="inp-message" placeholder="Digite o conteúdo da notificação..." maxlength="1000"></textarea>
+        </div>
+        <div class="form-group" id="target-group" style="margin-bottom:16px;display:none">
+            <label>MAC Address do Usuário</label>
+            <input type="text" id="inp-target-user" placeholder="Ex: AA:BB:CC:DD:EE:FF">
+            <p class="mac-hint">Informe o endereço MAC do dispositivo do usuário</p>
+        </div>
+        <button class="btn btn-primary" onclick="sendNotification()" id="btn-send">
+            Enviar Notificação
+        </button>
+    </div>
+
+    <div class="card">
+        <h3>📋 Mensagens Ativas</h3>
+        <div id="alert-list" class="alert"></div>
+        <div id="msg-list">
+            <div class="empty-state"><div class="icon">⏳</div><p>Carregando...</p></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://jgfgtapavgupabiujpxc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_JonsJCMpzpa7XhvvImLYVQ_XBTQc8hK';
+
+function toggleTargetInput() {
+    const type = document.getElementById('inp-target-type').value;
+    document.getElementById('target-group').style.display = type === 'specific' ? 'block' : 'none';
+}
+
+function showAlert(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = `alert alert-${type}`;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 4000);
+}
+
+async function sendNotification() {
+    const title = document.getElementById('inp-title').value.trim();
+    const message = document.getElementById('inp-message').value.trim();
+    const targetType = document.getElementById('inp-target-type').value;
+    const targetUser = targetType === 'specific' ? document.getElementById('inp-target-user').value.trim() : null;
+
+    if (!title) return showAlert('alert-send', 'Informe um título.', 'error');
+    if (!message) return showAlert('alert-send', 'Informe a mensagem.', 'error');
+    if (targetType === 'specific' && !targetUser) return showAlert('alert-send', 'Informe o MAC address do usuário.', 'error');
+
+    const btn = document.getElementById('btn-send');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-sm"></span> Enviando...';
+
+    try {
+        const body = { title, message, target_user: targetUser, is_active: true };
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+            const err = await res.text();
+            throw new Error(err);
+        }
+
+        document.getElementById('inp-title').value = '';
+        document.getElementById('inp-message').value = '';
+        document.getElementById('inp-target-user').value = '';
+        showAlert('alert-send', '✅ Notificação enviada com sucesso!', 'success');
+        loadMessages();
+    } catch(err) {
+        showAlert('alert-send', '❌ Erro: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enviar Notificação';
+    }
+}
+
+async function removeNotification(id) {
+    if (!confirm('Remover esta notificação? Os usuários não verão mais esta mensagem.')) return;
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({ is_active: false })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showAlert('alert-list', '✅ Mensagem removida.', 'success');
+        loadMessages();
+    } catch(err) {
+        showAlert('alert-list', '❌ Erro ao remover: ' + err.message, 'error');
+    }
+}
+
+function formatDate(iso) {
+    try {
+        return new Date(iso).toLocaleString('pt-BR');
+    } catch(e) { return iso; }
+}
+
+async function loadMessages() {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/notifications?is_active=eq.true&order=created_at.desc`, {
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const msgs = await res.json();
+
+        // Update stats
+        const global = msgs.filter(m => !m.target_user).length;
+        const personal = msgs.filter(m => m.target_user).length;
+        document.getElementById('stat-total').textContent = msgs.length;
+        document.getElementById('stat-global').textContent = global;
+        document.getElementById('stat-personal').textContent = personal;
+
+        const container = document.getElementById('msg-list');
+        if (msgs.length === 0) {
+            container.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Nenhuma mensagem ativa</p></div>`;
+            return;
+        }
+
+        container.innerHTML = `
+            <table class="msg-table">
+                <thead>
+                    <tr>
+                        <th>Mensagem</th>
+                        <th>Destino</th>
+                        <th>Data</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${msgs.map(m => `
+                        <tr>
+                            <td>
+                                <strong>${escapeHtml(m.title)}</strong>
+                                <div class="msg-text">${escapeHtml(m.message.substring(0, 80))}${m.message.length > 80 ? '...' : ''}</div>
+                            </td>
+                            <td>
+                                <span class="badge ${m.target_user ? 'badge-personal' : 'badge-global'}">
+                                    ${m.target_user ? '👤 ' + escapeHtml(m.target_user) : '📢 Todos'}
+                                </span>
+                            </td>
+                            <td style="color:rgba(255,255,255,0.4);font-size:12px;white-space:nowrap">${formatDate(m.created_at)}</td>
+                            <td>
+                                <button class="btn btn-danger" onclick="removeNotification('${m.id}')">Remover</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>`;
+    } catch(err) {
+        document.getElementById('msg-list').innerHTML = `<div class="empty-state"><p>⚠️ Erro: ${err.message}</p></div>`;
+    }
+}
+
+function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+}
+
+loadMessages();
+setInterval(loadMessages, 30000);
+</script>
+</body>
+</html>
