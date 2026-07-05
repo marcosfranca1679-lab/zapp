@@ -103,6 +103,30 @@
             margin-top: 20px;
         }
         .error p { color: #fca5a5; font-size: 14px; }
+
+        /* Embedded Style (when shown inside dashboard card) */
+        body.embedded {
+            background: transparent !important;
+            min-height: auto;
+        }
+        body.embedded .header {
+            display: none !important;
+        }
+        body.embedded .container {
+            padding: 4px 0 !important;
+            height: 140px;
+            overflow-y: auto;
+        }
+        body.embedded .msg-card {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+        body.embedded .loading {
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -128,6 +152,11 @@
         function getMac() {
             const params = new URLSearchParams(window.location.search);
             return params.get('mac') || 'unknown';
+        }
+
+        const isEmbedded = new URLSearchParams(window.location.search).get('embedded') === 'true';
+        if (isEmbedded) {
+            document.body.classList.add('embedded');
         }
 
         function formatDate(iso) {
@@ -161,6 +190,9 @@
                 content.style.display = 'block';
 
                 if (!msgs || msgs.length === 0) {
+                    if (typeof AndroidMessage !== 'undefined') {
+                        AndroidMessage.showCard(false);
+                    }
                     content.innerHTML = `
                         <div class="empty">
                             <div class="empty-icon">📭</div>
@@ -168,6 +200,10 @@
                             <p>Nenhuma notificação disponível no momento.</p>
                         </div>`;
                     return;
+                }
+
+                if (typeof AndroidMessage !== 'undefined') {
+                    AndroidMessage.showCard(true);
                 }
 
                 content.innerHTML = msgs.map(msg => `
@@ -182,6 +218,9 @@
                 `).join('');
 
             } catch(err) {
+                if (typeof AndroidMessage !== 'undefined') {
+                    AndroidMessage.showCard(false);
+                }
                 loading.style.display = 'none';
                 content.style.display = 'block';
                 content.innerHTML = `
