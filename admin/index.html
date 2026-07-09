@@ -196,10 +196,10 @@
       </div>
       <div style="display: flex; flex-direction: column; gap: 16px;">
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-          <div class="btn-upload" style="background: var(--accent); color: white; border: none; height: auto; padding: 12px 20px;">
+          <label class="btn-upload" style="background: var(--accent); color: white; border: none; height: auto; padding: 12px 20px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
             📁 Selecionar e Enviar Imagem
-            <input type="file" id="general-uploader-file" accept="image/*" onchange="uploadGeneralImage(this)">
-          </div>
+            <input type="file" id="general-uploader-file" accept="image/*" onchange="uploadGeneralImage(this)" style="display: none;">
+          </label>
           <span id="general-upload-status" style="color: var(--muted); font-size: 14px;">Nenhuma imagem enviada ainda.</span>
         </div>
         
@@ -229,10 +229,10 @@
           <label>URL da Imagem</label>
           <div class="uploader-container">
             <input type="url" id="inp-image" placeholder="https://..." oninput="previewImg(this.value)" style="flex: 1;">
-            <div class="btn-upload" id="btn-upload-container">
+            <label class="btn-upload" id="btn-upload-container" style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
               📁 Upload
-              <input type="file" id="inp-file" accept="image/*" onchange="uploadImage(this)">
-            </div>
+              <input type="file" id="inp-file" accept="image/*" onchange="uploadImage(this)" style="display: none;">
+            </label>
           </div>
         </div>
         <div class="form-group">
@@ -947,7 +947,7 @@ async function uploadImage(input) {
     }
   } finally {
     loading(false);
-    btnUpload.innerHTML = `📁 Upload<input type="file" id="inp-file" accept="image/*" onchange="uploadImage(this)">`;
+    btnUpload.innerHTML = `📁 Upload<input type="file" id="inp-file" accept="image/*" onchange="uploadImage(this)" style="display: none;">`;
     btnUpload.style.pointerEvents = 'auto';
   }
 }
