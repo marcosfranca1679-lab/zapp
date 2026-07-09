@@ -141,6 +141,10 @@
   .badge-dest { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; display: inline-block; }
   .badge-dest.all { background: rgba(37,99,235,.15); color: var(--accent2); }
   .badge-dest.spec { background: rgba(34,197,94,.15); color: var(--green); }
+  .uploader-container { display: flex; gap: 8px; align-items: center; }
+  .btn-upload { background: var(--surface2); border: 1px solid var(--border); color: var(--text); cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; height: 38px; }
+  .btn-upload:hover { border-color: var(--accent); background: var(--surface); }
+  .btn-upload input[type="file"] { position: absolute; top: 0; left: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
   @media(max-width:600px){.form-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -160,6 +164,7 @@
   <button class="tab-btn active" id="btn-tab-banners" onclick="switchTab('banners')">🖼️ Banners & Configs</button>
   <button class="tab-btn" id="btn-tab-devices" onclick="switchTab('devices')">🔑 Autorização via MAC</button>
   <button class="tab-btn" id="btn-tab-messages" onclick="switchTab('messages')">🔔 Notificações</button>
+  <button class="tab-btn" id="btn-tab-supabase" onclick="switchTab('supabase')">⚡ Supabase Setup</button>
 </div>
 
 <div class="container">
@@ -193,7 +198,13 @@
         </div>
         <div class="form-group">
           <label>URL da Imagem</label>
-          <input type="url" id="inp-image" placeholder="https://..." oninput="previewImg(this.value)">
+          <div class="uploader-container">
+            <input type="url" id="inp-image" placeholder="https://..." oninput="previewImg(this.value)" style="flex: 1;">
+            <div class="btn-upload" id="btn-upload-container">
+              📁 Upload
+              <input type="file" id="inp-file" accept="image/*" onchange="uploadImage(this)">
+            </div>
+          </div>
         </div>
         <div class="form-group">
           <label>Link ao Clicar (opcional)</label>
@@ -223,13 +234,40 @@
       </div>
     </div>
 
+    <!-- BANNER MANUAL INSERT INFO (SQL/JSON output for manual insert) -->
+    <div class="card" id="banner-manual-card" style="display:none; border-color: var(--accent2);">
+      <h2 style="color: var(--accent2);"><span class="step-badge" style="background: var(--accent2);">📋</span> Dados do Banner para o Supabase</h2>
+      <div class="info-box" style="background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.2); color: var(--accent2); margin-top: 10px;">
+        O banner foi adicionado com sucesso! Se preferir inserir os dados manualmente no Supabase SQL Editor ou JSON, use os scripts gerados abaixo:
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Script SQL (INSERT)</label>
+          <textarea id="banner-sql-code" readonly style="font-family: monospace; font-size: 11px; height: 120px; background: #0d1117; color: #a855f7; border: 1px solid var(--border); border-radius: 8px; padding: 8px; resize: none;"></textarea>
+          <button class="btn btn-green btn-sm" onclick="copyTextScript('banner-sql-code')" style="margin-top: 8px; width: 100px;">Copiar SQL</button>
+        </div>
+        <div class="form-group">
+          <label>Objeto JSON</label>
+          <textarea id="banner-json-code" readonly style="font-family: monospace; font-size: 11px; height: 120px; background: #0d1117; color: #a855f7; border: 1px solid var(--border); border-radius: 8px; padding: 8px; resize: none;"></textarea>
+          <button class="btn btn-green btn-sm" onclick="copyTextScript('banner-json-code')" style="margin-top: 8px; width: 100px;">Copiar JSON</button>
+        </div>
+      </div>
+      <div style="margin-top: 16px; text-align: right;">
+        <button class="btn btn-danger btn-sm" onclick="document.getElementById('banner-manual-card').style.display='none'">Fechar Painel</button>
+      </div>
+    </div>
+
     <!-- BANNER LIST -->
     <div class="card">
-      <h2>
-        <span class="step-badge">2</span>
-        Banners Ativos
-        <span id="count-badge" style="margin-left:auto;background:var(--surface2);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:400;color:var(--muted)">carregando...</span>
-        <button class="btn btn-green btn-sm" onclick="loadBanners()" style="margin-left:8px">🔄</button>
+      <h2 style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px;">
+        <span style="display:flex; align-items:center; gap:8px;">
+          <span class="step-badge">2</span>
+          Banners Ativos
+        </span>
+        <span style="display:flex; align-items:center; gap:8px;">
+          <span id="count-badge" style="background:var(--surface2);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:400;color:var(--muted)">carregando...</span>
+          <button class="btn btn-green btn-sm" onclick="loadBanners()">🔄 Recarregar</button>
+        </span>
       </h2>
       <div id="banner-list">
         <div class="empty-state">Carregando banners...</div>
@@ -353,11 +391,15 @@
 
     <!-- MESSAGES LIST -->
     <div class="card">
-      <h2>
-        <span class="step-badge">📋</span>
-        Mensagens Ativas
-        <span id="msg-count-badge" style="margin-left:auto;background:var(--surface2);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:400;color:var(--muted)">carregando...</span>
-        <button class="btn btn-green btn-sm" onclick="loadMessages()" style="margin-left:8px">🔄 Recarregar</button>
+      <h2 style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px;">
+        <span style="display:flex; align-items:center; gap:8px;">
+          <span class="step-badge">📋</span>
+          Mensagens Ativas
+        </span>
+        <span style="display:flex; align-items:center; gap:8px;">
+          <span id="msg-count-badge" style="background:var(--surface2);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:400;color:var(--muted)">carregando...</span>
+          <button class="btn btn-green btn-sm" onclick="loadMessages()">🔄 Recarregar</button>
+        </span>
       </h2>
       <div class="table-responsive">
         <table>
@@ -376,6 +418,23 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TABS: SUPABASE ================= -->
+  <div id="tab-supabase-content" class="tab-content">
+    <div class="card">
+      <h2><span class="step-badge">⚡</span> Configuração Automatizada do Supabase</h2>
+      <div class="info-box" style="margin-top: 10px;">
+        Copie o script SQL completo abaixo e execute-o no <strong>SQL Editor</strong> do seu painel do Supabase. Ele irá criar todas as tabelas (Banners, MACs, Configs e Notificações) e também o bucket de Storage <strong>banners</strong> com permissões públicas automáticas.
+      </div>
+      <div class="form-group full" style="margin-bottom:16px">
+        <label>Script SQL Completo (Tabelas, Storage e Políticas RLS)</label>
+        <textarea id="sql-complete-script" readonly style="font-family: monospace; font-size: 11px; height: 350px; background: #0d1117; color: #e6edf3; border: 1px solid var(--border); border-radius: 10px; padding: 12px; resize: none; width: 100%;">-- Carregando script...</textarea>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="copyTextScript('sql-complete-script')">📋 Copiar Script SQL</button>
       </div>
     </div>
   </div>
@@ -416,6 +475,10 @@ function switchTab(tab) {
     document.getElementById('btn-tab-messages').classList.add('active');
     document.getElementById('tab-messages-content').classList.add('active');
     loadMessages();
+  } else if (tab === 'supabase') {
+    document.getElementById('btn-tab-supabase').classList.add('active');
+    document.getElementById('tab-supabase-content').classList.add('active');
+    loadSupabaseScript();
   }
 }
 
@@ -475,8 +538,22 @@ async function addBanner() {
 
   if (error) { showToast('❌ Erro: ' + error.message, 'err'); return; }
   showToast('✅ Banner adicionado!', 'ok');
+  
+  // Show manual insert boxes for user
+  const escapedTitle = title.replace(/'/g, "''");
+  const escapedActionUrl = action_url ? `'${action_url.replace(/'/g, "''")}'` : 'NULL';
+  const sqlInsert = `INSERT INTO public.banners (title, image_url, action_url, active, ordem)\nVALUES ('${escapedTitle}', '${image_url}', ${escapedActionUrl}, ${active}, ${ordem});`;
+  const jsonInsert = JSON.stringify({ title, image_url, action_url: action_url || null, active, ordem }, null, 2);
+  
+  document.getElementById('banner-sql-code').value = sqlInsert;
+  document.getElementById('banner-json-code').value = jsonInsert;
+  document.getElementById('banner-manual-card').style.display = 'block';
+  
   clearForm();
   loadBanners();
+  
+  // Scroll down to the generated card so user sees it
+  document.getElementById('banner-manual-card').scrollIntoView({ behavior: 'smooth' });
 }
 
 async function deleteBanner(id) {
@@ -794,6 +871,137 @@ function escapeHtml(str) {
     loadConfig();
     loadBanners();
   }
+})();
+
+/* ================= NEW UTILS & STORAGE LOGIC ================= */
+async function uploadImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const btnUpload = document.getElementById('btn-upload-container');
+  const originalHtml = btnUpload.innerHTML;
+
+  btnUpload.innerHTML = '⏳ Upload...';
+  btnUpload.style.pointerEvents = 'none';
+  loading(true);
+
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+
+    // Upload using Supabase JS Client Storage API
+    const { data, error } = await db.storage
+      .from('banners')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw error;
+
+    // Get public URL
+    const { data: { publicUrl } } = db.storage
+      .from('banners')
+      .getPublicUrl(fileName);
+
+    // Set input value and run preview
+    document.getElementById('inp-image').value = publicUrl;
+    previewImg(publicUrl);
+    showToast('✅ Imagem carregada com sucesso!', 'ok');
+  } catch (err) {
+    console.error(err);
+    showToast('❌ Erro no upload: ' + err.message, 'err');
+    
+    // Warn if bucket does not exist or isn't public
+    if (err.message.includes('bucket') || err.message.includes('not found') || err.status === 404) {
+      alert('Atenção: Verifique se criou o bucket público "banners" no seu Supabase Storage. Acesse a aba "Supabase Setup" para obter as instruções e o script SQL!');
+    }
+  } finally {
+    loading(false);
+    btnUpload.innerHTML = `📁 Upload<input type="file" id="inp-file" accept="image/*" onchange="uploadImage(this)">`;
+    btnUpload.style.pointerEvents = 'auto';
+  }
+}
+
+function copyTextScript(id) {
+  const el = document.getElementById(id);
+  el.select();
+  document.execCommand('copy');
+  showToast('📋 Copiado para a área de transferência!', 'ok');
+}
+
+function loadSupabaseScript() {
+  const sql = `-- =========================================================================\n` +
+    `-- SCRIPT DE CONFIGURAÇÃO COMPLETA DO SUPABASE PARA O Z PLAYER\n` +
+    `-- Cole este script inteiro no painel do Supabase -> SQL Editor -> New Query\n` +
+    `-- =========================================================================\n\n` +
+    `-- 1. TABELA: notifications\n` +
+    `CREATE TABLE IF NOT EXISTS public.notifications (\n` +
+    `    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\n` +
+    `    title TEXT NOT NULL,\n` +
+    `    message TEXT NOT NULL,\n` +
+    `    target_user TEXT DEFAULT NULL,\n` +
+    `    is_active BOOLEAN DEFAULT TRUE NOT NULL,\n` +
+    `    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL\n` +
+    `);\n\n` +
+    `ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;\n` +
+    `DROP POLICY IF EXISTS "Leitura de notificações para todos" ON public.notifications;\n` +
+    `DROP POLICY IF EXISTS "Escrita e controle total de notificações" ON public.notifications;\n` +
+    `CREATE POLICY "Leitura de notificações para todos" ON public.notifications FOR SELECT USING (true);\n` +
+    `CREATE POLICY "Escrita e controle total de notificações" ON public.notifications FOR ALL USING (true) WITH CHECK (true);\n\n` +
+    `-- 2. TABELA: banners\n` +
+    `CREATE TABLE IF NOT EXISTS public.banners (\n` +
+    `    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,\n` +
+    `    title TEXT,\n` +
+    `    image_url TEXT NOT NULL,\n` +
+    `    action_url TEXT,\n` +
+    `    active BOOLEAN DEFAULT TRUE NOT NULL,\n` +
+    `    ordem INT DEFAULT 0,\n` +
+    `    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL\n` +
+    `);\n\n` +
+    `ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;\n` +
+    `DROP POLICY IF EXISTS "Leitura de banners para todos" ON public.banners;\n` +
+    `DROP POLICY IF EXISTS "Escrita e controle total de banners" ON public.banners;\n` +
+    `CREATE POLICY "Leitura de banners para todos" ON public.banners FOR SELECT USING (true);\n` +
+    `CREATE POLICY "Escrita e controle total de banners" ON public.banners FOR ALL USING (true) WITH CHECK (true);\n\n` +
+    `-- 3. TABELA: app_config\n` +
+    `CREATE TABLE IF NOT EXISTS public.app_config (\n` +
+    `    key TEXT PRIMARY KEY,\n` +
+    `    value TEXT NOT NULL,\n` +
+    `    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL\n` +
+    `);\n\n` +
+    `ALTER TABLE public.app_config ENABLE ROW LEVEL SECURITY;\n` +
+    `DROP POLICY IF EXISTS "Leitura de app_config para todos" ON public.app_config;\n` +
+    `DROP POLICY IF EXISTS "Escrita e controle total de app_config" ON public.app_config;\n` +
+    `CREATE POLICY "Leitura de app_config para todos" ON public.app_config FOR SELECT USING (true);\n` +
+    `CREATE POLICY "Escrita e controle total de app_config" ON public.app_config FOR ALL USING (true) WITH CHECK (true);\n\n` +
+    `-- 4. TABELA: mac_auth\n` +
+    `CREATE TABLE IF NOT EXISTS public.mac_auth (\n` +
+    `    mac_address TEXT PRIMARY KEY,\n` +
+    `    status BOOLEAN DEFAULT TRUE NOT NULL,\n` +
+    `    username TEXT NOT NULL,\n` +
+    `    password TEXT NOT NULL,\n` +
+    `    notes TEXT,\n` +
+    `    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL\n` +
+    `);\n\n` +
+    `ALTER TABLE public.mac_auth ENABLE ROW LEVEL SECURITY;\n` +
+    `DROP POLICY IF EXISTS "Leitura de mac_auth para todos" ON public.mac_auth;\n` +
+    `DROP POLICY IF EXISTS "Escrita e controle total de mac_auth" ON public.mac_auth;\n` +
+    `CREATE POLICY "Leitura de mac_auth para todos" ON public.mac_auth FOR SELECT USING (true);\n` +
+    `CREATE POLICY "Escrita e controle total de mac_auth" ON public.mac_auth FOR ALL USING (true) WITH CHECK (true);\n\n` +
+    `-- 5. BUCKET DE IMAGENS: storage.buckets\n` +
+    `INSERT INTO storage.buckets (id, name, public)\n` +
+    `VALUES ('banners', 'banners', true)\n` +
+    `ON CONFLICT (id) DO NOTHING;\n\n` +
+    `DROP POLICY IF EXISTS "Permitir leitura pública de banners" ON storage.objects;\n` +
+    `DROP POLICY IF EXISTS "Permitir upload de banners" ON storage.objects;\n` +
+    `DROP POLICY IF EXISTS "Permitir exclusão de banners" ON storage.objects;\n\n` +
+    `CREATE POLICY "Permitir leitura pública de banners" ON storage.objects FOR SELECT USING (bucket_id = 'banners');\n` +
+    `CREATE POLICY "Permitir upload de banners" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'banners');\n` +
+    `CREATE POLICY "Permitir exclusão de banners" ON storage.objects FOR DELETE USING (bucket_id = 'banners');`;
+
+  document.getElementById('sql-complete-script').value = sql;
+}
 })();
 </script>
 </body>
