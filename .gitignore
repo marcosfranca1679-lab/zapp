@@ -1,1 +1,4 @@
 .vercel
+.gradle
+**/build/
+local.properties
