@@ -188,6 +188,35 @@
       </div>
     </div>
 
+    <!-- IMAGE UPLOADER & LINK GENERATOR -->
+    <div class="card" style="border-left: 4px solid var(--accent);">
+      <h2><span class="step-badge" style="background: var(--accent);">🖼️</span> Gerador de Links de Imagens</h2>
+      <div class="info-box" style="margin-top: 10px;">
+        Faça o upload de qualquer imagem para o Supabase Storage e gere um link público instantaneamente. Você pode copiar o link para usar no aplicativo ou clicar para preencher diretamente no formulário do Banner abaixo.
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <div class="btn-upload" style="background: var(--accent); color: white; border: none; height: auto; padding: 12px 20px;">
+            📁 Selecionar e Enviar Imagem
+            <input type="file" id="general-uploader-file" accept="image/*" onchange="uploadGeneralImage(this)">
+          </div>
+          <span id="general-upload-status" style="color: var(--muted); font-size: 14px;">Nenhuma imagem enviada ainda.</span>
+        </div>
+        
+        <div id="general-upload-result" style="display: none; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; align-items: center; gap: 16px; flex-wrap: wrap;">
+          <img id="general-upload-preview" src="" style="width: 80px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
+          <div style="flex: 1; min-width: 200px;">
+            <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px;">Link Gerado</label>
+            <input type="text" id="general-upload-url" readonly style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px;">
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px;">
+            <button class="btn btn-green btn-sm" onclick="copyTextScript('general-upload-url')">📋 Copiar Link</button>
+            <button class="btn btn-primary btn-sm" onclick="fillBannerUrl()">✍️ Usar no Banner</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ADD BANNER -->
     <div class="card">
       <h2><span class="step-badge">1</span> Adicionar Banner</h2>
@@ -1001,6 +1030,57 @@ function loadSupabaseScript() {
     `CREATE POLICY "Permitir exclusão de banners" ON storage.objects FOR DELETE USING (bucket_id = 'banners');`;
 
   document.getElementById('sql-complete-script').value = sql;
+}
+
+async function uploadGeneralImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const statusSpan = document.getElementById('general-upload-status');
+  const resultDiv = document.getElementById('general-upload-result');
+  
+  statusSpan.innerHTML = '⏳ Enviando imagem para o Supabase...';
+  loading(true);
+
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+
+    const { data, error } = await db.storage
+      .from('banners')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = db.storage
+      .from('banners')
+      .getPublicUrl(fileName);
+
+    statusSpan.innerHTML = '✅ Imagem enviada e link gerado!';
+    document.getElementById('general-upload-url').value = publicUrl;
+    document.getElementById('general-upload-preview').src = publicUrl;
+    resultDiv.style.display = 'flex';
+    showToast('✅ Link gerado com sucesso!', 'ok');
+  } catch (err) {
+    console.error(err);
+    statusSpan.innerHTML = '❌ Falha no upload.';
+    showToast('❌ Erro: ' + err.message, 'err');
+  } finally {
+    loading(false);
+    input.value = '';
+  }
+}
+
+function fillBannerUrl() {
+  const url = document.getElementById('general-upload-url').value;
+  if (!url) return;
+  document.getElementById('inp-image').value = url;
+  previewImg(url);
+  showToast('✍️ Link preenchido no formulário de Banner!', 'ok');
+  document.getElementById('inp-title').scrollIntoView({ behavior: 'smooth' });
 }
 </script>
 </body>
